@@ -497,56 +497,6 @@ static uvc_error_t _uvc_get_stream_ctrl_format(uvc_device_handle_t *devh,
 			}
 		}
 	}
-	// --- fallback: if no exact match, find the closest resolution ---
-	{
-		uvc_frame_desc_t *best_frame = NULL;
-		int best_w_diff = 0x7FFFFFFF, best_h_diff = 0x7FFFFFFF;
-
-		DL_FOREACH(format->frame_descs, frame) {
-			int w_diff = ((int)frame->wWidth > width) ? ((int)frame->wWidth - width) : (width - (int)frame->wWidth);
-			int h_diff = ((int)frame->wHeight > height) ? ((int)frame->wHeight - height) : (height - (int)frame->wHeight);
-			if ((w_diff < best_w_diff) || ((w_diff == best_w_diff) && (h_diff < best_h_diff))) {
-				best_w_diff = w_diff;
-				best_h_diff = h_diff;
-				best_frame = frame;
-			}
-		}
-		if (best_frame) {
-			uint32_t *interval;
-			LOGI("closest resolution: %dx%d (requested %dx%d)",
-				best_frame->wWidth, best_frame->wHeight, width, height);
-			if (best_frame->intervals) {
-				for (interval = best_frame->intervals; *interval; ++interval) {
-					if (UNLIKELY(!(*interval))) continue;
-					uint32_t it = 10000000 / *interval;
-					if ((it >= (uint32_t) min_fps) && (it <= (uint32_t) max_fps)) {
-						ctrl->bmHint = (1 << 0);
-						ctrl->bFormatIndex = format->bFormatIndex;
-						ctrl->bFrameIndex = best_frame->bFrameIndex;
-						ctrl->dwFrameInterval = *interval;
-						goto found;
-					}
-				}
-			} else {
-				int32_t fps;
-				for (fps = max_fps; fps >= min_fps; fps--) {
-					if (UNLIKELY(!fps)) continue;
-					uint32_t interval_100ns = 10000000 / fps;
-					uint32_t interval_offset = interval_100ns - best_frame->dwMinFrameInterval;
-					if (interval_100ns >= best_frame->dwMinFrameInterval
-						&& interval_100ns <= best_frame->dwMaxFrameInterval
-						&& !(interval_offset
-							&& (interval_offset % best_frame->dwFrameIntervalStep))) {
-						ctrl->bmHint = (1 << 0);
-						ctrl->bFormatIndex = format->bFormatIndex;
-						ctrl->bFrameIndex = best_frame->bFrameIndex;
-						ctrl->dwFrameInterval = interval_100ns;
-						goto found;
-					}
-				}
-			}
-		}
-	}
 	result = UVC_ERROR_INVALID_MODE;
 fail:
 	uvc_release_if(devh, ctrl->bInterfaceNumber);

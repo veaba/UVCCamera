@@ -252,7 +252,7 @@ int UVCPreview::setFrameCallback(JNIEnv *env, jobject frame_callback_obj, int pi
 
 void UVCPreview::callbackPixelFormatChanged() {
 	mFrameCallbackFunc = NULL;
-	const size_t sz = requestWidth * requestHeight;
+	const size_t sz = frameWidth * frameHeight;
 	switch (mPixelFormat) {
 	  case PIXEL_FORMAT_RAW:
 		LOGI("PIXEL_FORMAT_RAW:");
